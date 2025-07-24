@@ -1,22 +1,24 @@
 # Accelerating EdDSA Signature Verification with Faster Scalar Size Halving
 
-This repository contains the source code for the article *"Accelerating EdDSA Signature Verification with Faster Scalar Size Halving."*
+This repository contains the source code for the article *"[Accelerating EdDSA Signature Verification with Faster Scalar Size Halving](https://tches.iacr.org/index.php/TCHES/article/view/12225)."*
 
 ## Source Code
 
 The source code is located in the [`src/`](src/) directory, with the following three subdirectories:
 
-- [`src/half_size`](src/half_size/): Contains the implementation of the $\textsf{hEEA\\_approx\\_q}$, devision-based $\textsf{hEEA}$, and $\textsf{hSIZE\\_HGCD}$ algorithms for Curve25519 and Curve448, along with modified versions of the $\textsf{reduce\\_basis}$ algorithm for Curve25519 and Curve448; these are adapted from the [Curve9767](https://github.com/pornin/curve9767/blob/master/src/scalar_amd64.c) implementation.
+- [`src/half_size`](src/half_size/): Contains the implementation of the $\textsf{hEEA\\_approx\\_q}$, division-based $\textsf{hEEA}$, and $\textsf{hSIZE\\_HGCD}$ algorithms for Curve25519 and Curve448, along with modified versions of the $\textsf{reduce\\_basis}$ algorithm for Curve25519 and Curve448; these are adapted from the [Curve9767](https://github.com/pornin/curve9767/blob/master/src/scalar_amd64.c) implementation.
 
 - [`src/ed25519-donna`](src/ed25519-donna/): Contains the [`ed25519-donna`](https://github.com/floodyberry/ed25519-donna) implementation, as well as the following additional files:
     * [`new_batch_helper.h`](src/ed25519-donna/new_batch_helper.h): Implements several helper functions for performing individual and batch verifications, including the multiplicative inverse function, a function to reformat the output of the `curve25519_hEEA_vartime` function to the format used in `ed25519-donna`, $\textsf{DSM\\_B\\_doublePre}$ of the double-scalar multiplication function with doubled-size precomputation table for $B$, and the two versions, $\textsf{QSM\\_B\\_B'}$ and $\textsf{QSM\\_B}$, of the quadruple-scalar multiplication functions.
-    * [`ed25519-donna-open_new.h`](src/ed25519-donna/ed25519-donna-open_new.h): Implements the $\textsf{DSM}$-based individual verification method using $\textsf{DSM\\_B\\_doublePre}$, as well as the two versions of the new $\textsf{QSM}$-based individual verification method, one using $\textsf{QSM\\_B\\_B'}$ and the other using $\textsf{QSM\\_B}$. Additionaly, it implements the new individual verification with $\textsf{QSM\\_B\\_B'}$, but using the optimized version of $\textsf{hSIZE\\_HGCD}$ instead of $\textsf{hEEA\\_approx\\_q}$.
+    * [`ed25519-donna-open_new.h`](src/ed25519-donna/ed25519-donna-open_new.h): Implements the $\textsf{DSM}$-based individual verification method using $\textsf{DSM\\_B\\_doublePre}$, as well as the two versions of the new $\textsf{QSM}$-based individual verification method, one using $\textsf{QSM\\_B\\_B'}$ and the other using $\textsf{QSM\\_B}$. Additionally, it implements the new individual verification with $\textsf{QSM\\_B\\_B'}$, but using the optimized version of $\textsf{hSIZE\\_HGCD}$ instead of $\textsf{hEEA\\_approx\\_q}$.
     * [`ed25519-donna-batchverify_new.h`](src/ed25519-donna/ed25519-donna-batchverify_new.h): Implements two versions of the new batch verification method, one using $\textsf{hEEA\\_approx\\_q}$ and the other using the optimized version of $\textsf{hSIZE\\_HGCD}$.
 
 - [`src/inverse25519`](src/inverse25519/): Contains the source codes for three different algorithms to compute the inverse modulo the prime $p = 2^{255}-19$:
     * [`inverse25519/EEA_q`](src/inverse25519/EEA_q/): Contains the implementation of the inverse function using our proposed $\textsf{EEA\\_approx\\_q}$.
     * [`inverse25519/bingcd`](src/inverse25519/bingcd/): Contains the source code of [binGCD](https://github.com/pornin/bingcd).
     * [`inverse25519/inverse25519skylake-20210110`](src/inverse25519/inverse25519skylake-20210110/): Contains the source code of the latest version of [safeGCD](https://gcd.cr.yp.to/software/inverse25519skylake-20210110.tar.gz).
+
+- [`base3.py`](base3.py): It is a script derived from [`base.py`](https://github.com/floodyberry/supercop/blob/master/crypto_sign/ed25519/ref10/base.py). It generates the required pre-computation tables for $B$ and $B$' in Radix51 format, which are included in [`new_batch_helper.h`](src/ed25519-donna/new_batch_helper.h). These tables are used by the double-scalar multiplication function ($\textsf{DSM\\_B\\_doublePre}$) and both versions of the quadruple-scalar multiplication functions ($\textsf{QSM\\_B\\_B'}$ and $\textsf{QSM\\_B}$).
 
 
 ## Benchmarks
@@ -28,10 +30,15 @@ To compile the code, you will need:
 3. Libraries: [GMP](https://gmplib.org/) `libgmp-dev`, and `libssl-dev`
 
 ### Compilation
-It can be done using the provided `Makefile`. It will generate five executable binaries for running tests and benchmarks:
+It can be done using `make` command with the provided `Makefile` as follows:
+```
+$ make 
+``` 
 
-1. `test_halfSize_ed448`: Tests the correctness of the half-size scalars using $\textsf{hEEA\\_approx\\_q}$, $\textsf{reduce\\_basis}$, devision-based $\textsf{hEEA}$, and $\textsf{hSIZE\\_HGCD}$ for Ed448 and benchmarks over 10,000 random instances of $v$.
-2. `test_halfSize_ed25519`: Tests the correctness of the half-size scalars using $\textsf{hEEA\\_approx\\_q}$, $\textsf{reduce\\_basis}$, devision-based  $\textsf{hEEA}$, and $\textsf{hSIZE\\_HGCD}$ for Ed25519 and benchmarks over 10,000 random instances of $v$.
+It will generate five executable binaries for running tests and benchmarks:
+
+1. `test_halfSize_ed448`: Tests the correctness of the half-size scalars using $\textsf{hEEA\\_approx\\_q}$, $\textsf{reduce\\_basis}$, division-based $\textsf{hEEA}$, and $\textsf{hSIZE\\_HGCD}$ for Ed448 and benchmarks over 10,000 random instances of $v$.
+2. `test_halfSize_ed25519`: Tests the correctness of the half-size scalars using $\textsf{hEEA\\_approx\\_q}$, $\textsf{reduce\\_basis}$, division-based  $\textsf{hEEA}$, and $\textsf{hSIZE\\_HGCD}$ for Ed25519 and benchmarks over 10,000 random instances of $v$.
 3. `test_singleVerification`: Tests the correctness of the proposed individual verification method and benchmarks over 1,000 random Ed25519 signatures.
 4. `test_batchVerification`: Tests the correctness of the proposed batch verification method and benchmarks over 100 random Ed25519 batches, with batch sizes varying from 4 to 128 signatures per batch.
 5. `test_inverse25519`: Tests the correctness of the inverse modulo the prime $p = 2^{255}-19$ using  $\textsf{EEA\\_approx\\_q}$, $\textsf{binGCD}$, and $\textsf{safeGCD}$, and benchmarks over 10,000 random instances of $v$.
@@ -44,10 +51,12 @@ Execution times are given in clock cycles. Each benchmarking program, except `te
 - Clang 10.0.0
 - GCC 9.4.0
 - GMP 6.2.0
+- OpenSSL 1.1.1f (Note: starting from OpenSSL 3.0, you may face a warning due to the deprecation in SHA512 APIs used in `ed25519-donna` code.)
 
 ### Benchmark Outputs
 #### `test_halfSize_ed448`
 ```
+$ ./test_halfSize_ed448
 Benchmark of half-size-scalars for Ed448:
 Number of samples = 10000 
 Number of rounds = 10 
@@ -76,6 +85,7 @@ Done!
 ```
 #### ``test_halfSize_ed25519``
 ```
+$ ./test_halfSize_ed25519
 Benchmark of half-size-scalars for Ed25519:
 Number of samples = 10000 
 Number of rounds = 10 
@@ -118,6 +128,7 @@ Done!
 ```
 #### ``test_singleVerification``
 ```
+$ ./test_singleVerification
 Benchmark of individual verification:
 Number of samples = 10000 
 Number of rounds = 20 
@@ -146,6 +157,7 @@ Done!
 ```
 #### ``test_batchVerification``
 ```
+$ ./test_batchVerification
 Benchmark of batch verification:
 Number of samples = 100 
 Number of rounds = 10 
@@ -173,6 +185,7 @@ Batch size | Old approach | New using hEEA | Speed up | Improvement || New using
 
 #### `test_inverse25519`
 ```
+$ ./test_inverse25519
 Benchmark of inverse25519:
 Number of samples = 10000 
 ───────────────────────────────────────────────────────────────────────
@@ -191,5 +204,20 @@ Average     | 3939.35      | 5229.96      | 0.7532       | -32.76 %
 ───────────────────────────────────────────────────────────────────────
 Done!
 ```
+
 ## Citation
 To cite this work, please use:
+```
+@article{elsheikh2025accelerating,
+  title     = {Accelerating EdDSA Signature Verification with Faster Scalar Size Halving},
+  author    = {ElSheikh, Muhammad and Keskinkurt Paksoy, {\.I}rem and Cenk, Murat and Hasan, M Anwar},
+  journal   = {IACR Transactions on Cryptographic Hardware and Embedded Systems},
+  volume    = {2025},
+  number    = {3},
+  pages     = {493--515},
+  year      = {2025},
+  month     = {Jun.},
+  url       = {https://tches.iacr.org/index.php/TCHES/article/view/12225}, 
+  DOI       = {10.46586/tches.v2025.i3.493-515}
+}
+```
